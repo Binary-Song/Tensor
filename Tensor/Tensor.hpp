@@ -1,6 +1,8 @@
 #ifndef _TENSOR_HPP_
 #define _TENSOR_HPP_
 #include <vector>
+#include <functional>
+
 #ifdef NDEBUG 
 // release mode
 #define TENSOR_ASSERT(cond,msg)
@@ -9,29 +11,31 @@
 #include <iostream>
 #define TENSOR_ASSERT(cond,msg) if(!(cond)) throw msg
 #endif
+
 namespace Ten
 {
 	template<typename Scalar>
 	class Tensor
 	{
 	public:
-		class Shape: public std::vector<int>
+		class Shape : public std::vector<int>
 		{
 		public:
+			Shape()
+			{}
 
 			Shape(std::vector<int> const& shape)
-				:std::vector<int>(shape){}
+				:std::vector<int>(shape) {}
 
-			Shape(Tensor const& t) 
+			Shape(Tensor const& t)
 			{
-				for(size_t r = 0 ; r < t.rank() ;++r)
-				{
+				for (size_t r = 0; r < t.rank(); ++r) {
 					push_back(t._dims[r].elems);
 				}
 			}
-			 
+
 			bool operator==(const Shape& other) const
-			{ 
+			{
 				if (size() != other.size()) return false;
 				for (size_t r = 0; r < size(); ++r) {
 					if ((*this)[r] != other[r])
@@ -40,7 +44,7 @@ namespace Ten
 				return true;
 			}
 		};
-		friend class Shape; 
+		friend class Shape;
 	private:
 
 		class Dimension
@@ -96,6 +100,16 @@ namespace Ten
 		Scalar const& operator()(Args... args) const
 		{
 			return const_cast<Tensor&>(*this).operator()(args...);
+		}
+
+		Scalar& operator[](int flat_index)
+		{
+			return _data[flat_index];
+		}
+
+		Scalar const& operator[](int flat_index) const
+		{
+			return  _data[flat_index];
 		}
 
 		size_t size() const
@@ -181,7 +195,7 @@ namespace Ten
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes");
 			Tensor<Scalar> C(A.shape());
-			for (size_t i = 0; i < A.size();++i) {
+			for (size_t i = 0; i < A.size(); ++i) {
 				C._data[i] = A._data[i] + B._data[i];
 			}
 			return C;
@@ -203,8 +217,8 @@ namespace Ten
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.shape() == B.shape(), "can't compare equality with wrong shapes");
 			for (size_t i = 0; i < A.size(); ++i) {
-				if(A._data[i] != B._data[i])
-				return false;
+				if (A._data[i] != B._data[i])
+					return false;
 			}
 			return true;
 		}
@@ -212,14 +226,14 @@ namespace Ten
 		Tensor<Scalar> convolve2D(Tensor<Scalar> const& B) const
 		{
 			Tensor<Scalar> const& A = *this;
-			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support convolution"); 
+			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support convolution");
 			Tensor<Scalar> Z({ A.rows() - B.rows() + 1 , A.cols() - B.cols() + 1 });
 			for (int r = 0; r < Z.rows(); r++) {
 				for (int c = 0; c < Z.cols(); c++) {
 					Scalar z = 0;
 					for (int i = 0; i < B.rows(); i++) {
 						for (int j = 0; j < B.cols(); j++) {
-							z += A(r + i, c + j)* B(i, j);
+							z += A(r + i, c + j) * B(i, j);
 						}
 					}
 					Z(r, c) = z;
@@ -227,6 +241,17 @@ namespace Ten
 			}
 			return Z;
 		}
+
+		Tensor<Scalar> elemwise(std::function<Scalar(Scalar)> func) const
+		{
+			Tensor<Scalar> Z;
+			Z._dims = this->_dims;
+			for (auto&& elem : this->_data) {
+				Scalar z = func(elem);
+				Z._data.push_back(z);
+			}
+		}
+
 #pragma region Details
 
 	private:

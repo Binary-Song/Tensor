@@ -55,6 +55,6 @@ conv
     Tensor<int> X({ 5,3 }, { 1,2,0,-1,3,1,2,-1,1,0,1,2,1,2,0 });
     Tensor<int> Y({ 2,2 }, { 1,0,-1,1 });
     Tensor<int> Z({ 4,2 }, { 5,0,-4,5,3,0,1,-1 });
-
+    
     BOOST_CHECK(Z == X.convolve2D(Y));
 }
