@@ -32,7 +32,7 @@ namespace Ten
 				for (size_t r = 0; r < t.rank(); ++r) {
 					push_back(t._dims[r].elems);
 				}
-			}
+			}  
 
 			bool operator==(const Shape& other) const
 			{
@@ -86,6 +86,19 @@ namespace Ten
 		Tensor()
 			:_dims{}, _data{}
 		{}
+
+		Tensor(Tensor&& other) noexcept
+		{
+			_dims = std::move(other._dims);
+			_data = std::move(other._data);
+		}
+
+		Tensor& operator=(Tensor&& other) noexcept
+		{
+			_dims = std::move(other._dims);
+			_data = std::move(other._data);
+			return *this;
+		}
 
 		template<typename... Args>
 		Scalar& operator()(Args... args)
@@ -250,7 +263,9 @@ namespace Ten
 				Scalar z = func(elem);
 				Z._data.push_back(z);
 			}
-		}
+			return Z;
+		} 
+		 
 
 #pragma region Details
 
