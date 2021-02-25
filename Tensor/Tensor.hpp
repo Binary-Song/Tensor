@@ -2,6 +2,7 @@
 #define _TENSOR_HPP_
 #include <vector>
 #include <functional>
+#include <random>
 
 #ifdef NDEBUG 
 // release mode
@@ -12,8 +13,11 @@
 #define TENSOR_ASSERT(cond,msg) if(!(cond)) throw msg
 #endif
 
+
 namespace Ten
 {
+
+
 	template<typename Scalar>
 	class Tensor
 	{
@@ -140,6 +144,7 @@ namespace Ten
 		{
 			return Tensor(elem_numbers, [=]() {return c; });
 		}
+		 
 
 		template<typename... Args>
 		Scalar& operator()(Args... args)
@@ -317,6 +322,7 @@ namespace Ten
 			return Z;
 		}
 
+
 		Tensor<Scalar> operator*(Scalar coeff) const
 		{
 			return this->elemwise([=](Scalar elem) {
@@ -382,5 +388,26 @@ namespace Ten
 
 #pragma endregion 
 	};
+
+	std::default_random_engine rand_eng;
+
+ 
+    inline Tensor<double> RandomUniform(std::vector<int> const& elem_numbers,double lower_bound, double upper_bound)
+	{ 
+		std::uniform_real_distribution<double> unif(lower_bound, upper_bound); 
+		return Tensor<double>(elem_numbers, [&]() {return unif(rand_eng); });
+	}
+
+	inline Tensor<int> RandomUniform(std::vector<int> const& elem_numbers, int lower_bound, int upper_bound)
+	{
+		std::uniform_int_distribution<int> unif(lower_bound, upper_bound);
+		return Tensor<int>(elem_numbers, [&]() {return unif(rand_eng); });
+	}
+	
+	inline Tensor<double> RandomNormal(std::vector<int> const& elem_numbers, double mean, double stddev)
+	{
+		std::normal_distribution<double> norm(mean, stddev);
+		return Tensor<double>(elem_numbers, [&]() {return norm(rand_eng); });
+	}
 }
 #endif
