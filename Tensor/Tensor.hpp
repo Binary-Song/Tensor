@@ -32,7 +32,7 @@ namespace Ten
 				for (size_t r = 0; r < t.rank(); ++r) {
 					push_back(t._dims[r].elems);
 				}
-			}  
+			}
 
 			bool operator==(const Shape& other) const
 			{
@@ -66,10 +66,12 @@ namespace Ten
 
 	public:
 
+		/// Construct tensor with given shape
 		Tensor(std::vector<int>const& elem_numbers)
 			:Tensor(elem_numbers, std::vector<Scalar>())
 		{}
 
+		/// Construct tensor with shape and data
 		Tensor(std::vector<int>const& elem_numbers, std::vector<Scalar>const& data)
 		{
 			reshape(elem_numbers);
@@ -79,25 +81,64 @@ namespace Ten
 			}
 		}
 
-		Tensor(const Scalar& number)
-			:_dims{ Dimension(1,1) }, _data{ number }
-		{}
-
-		Tensor()
-			:_dims{}, _data{}
-		{}
-
+		/// Move constructor
 		Tensor(Tensor&& other) noexcept
 		{
 			_dims = std::move(other._dims);
 			_data = std::move(other._data);
 		}
 
+		/// Move assignment
 		Tensor& operator=(Tensor&& other) noexcept
 		{
 			_dims = std::move(other._dims);
 			_data = std::move(other._data);
 			return *this;
+		}
+
+		/// Construct a scalar tensor
+		Tensor(const Scalar& number)
+			:_dims{ Dimension(1,1) }, _data{ number }
+		{}
+
+		/// Uninitialized tensor (rank 0)
+		Tensor()
+			:_dims{}, _data{}
+		{}
+
+		/// Construct a tensor with a function that returns values.
+		Tensor(std::vector<int> const& elem_numbers, std::function<Scalar()> func)
+		{
+			init_dimensions(elem_numbers);
+			int size = compute_data_size(elem_numbers);
+			while (size--) {
+				_data.push_back(func());
+			}
+		}
+
+		/// Construct a tensor with a function that returns a value for each flattened index.
+		Tensor(std::vector<int> const& elem_numbers, std::function<Scalar(int)> func)
+		{
+			init_dimensions(elem_numbers);
+			int size = compute_data_size(elem_numbers);
+			for (int i = 0; i < size; ++i)	{
+				_data.push_back(func(i)); 
+			} 
+		}
+
+		static Tensor<Scalar> Zeros(std::vector<int> const& elem_numbers)
+		{
+			return Tensor(elem_numbers, []() {return 0; });
+		}
+
+		static Tensor<Scalar> Ones(std::vector<int> const& elem_numbers)
+		{
+			return Tensor(elem_numbers, []() {return 1; });
+		}
+
+		static Tensor<Scalar> Constants(std::vector<int> const& elem_numbers, Scalar c)
+		{
+			return Tensor(elem_numbers, [=]() {return c; });
 		}
 
 		template<typename... Args>
@@ -140,7 +181,7 @@ namespace Ten
 			return _data.data();
 		}
 
-		void reshape(std::vector<int> const& elem_numbers)
+		void init_dimensions(std::vector<int> const& elem_numbers)
 		{
 			// init dimensions
 			_dims.resize(elem_numbers.size());
@@ -152,12 +193,22 @@ namespace Ten
 				}
 				_dims[i].elem_size = e;
 			}
-			// compute data size
-			size_t data_size = 1;
-			for (size_t i = 0; i < elem_numbers.size(); ++i) {
+		}
+
+		int compute_data_size(std::vector<int> const& elem_numbers)
+		{
+			int data_size = 1;
+			for (int i = 0; i < elem_numbers.size(); ++i) {
 				data_size *= elem_numbers[i];
 			}
-			_data.resize(data_size);
+			return data_size;
+		}
+
+		void reshape(std::vector<int> const& elem_numbers)
+		{
+			init_dimensions(elem_numbers);
+			// compute data size & resize data
+			_data.resize(compute_data_size(elem_numbers));
 		}
 
 		Shape shape() const
@@ -264,8 +315,28 @@ namespace Ten
 				Z._data.push_back(z);
 			}
 			return Z;
-		} 
-		 
+		}
+
+		Tensor<Scalar> operator*(Scalar coeff) const
+		{
+			return this->elemwise([=](Scalar elem) {
+				return elem * coeff;
+				});
+		}
+
+		Tensor<Scalar> operator/(Scalar coeff) const
+		{
+			return this->elemwise([=](Scalar elem) {
+				return elem / coeff;
+				});
+		}
+
+		Tensor<Scalar> operator-() const
+		{
+			return this->elemwise([=](Scalar elem) {
+				return -elem;
+				});
+		}
 
 #pragma region Details
 
