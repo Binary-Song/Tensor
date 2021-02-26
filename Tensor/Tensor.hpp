@@ -162,7 +162,7 @@ namespace Ten
 			TENSOR_ASSERT(this->rank() == 3, "this tensor cannot be addressed by 3 indices");
 			for (int i = 0; i < shape[0]; ++i)
 				for (int j = 0; j < shape[1]; ++j)
-					for (int k = 0; j < shape[2]; ++k)
+					for (int k = 0; k < shape[2]; ++k)
 						_data.push_back(func(i, j, k));
 		}
 
@@ -173,6 +173,36 @@ namespace Ten
 			int size = compute_data_size(shape);
 			for (int i = 0; i < size; ++i)
 				_data.push_back(func(i));
+		}
+
+		void assign(std::function<Scalar(int)> func)
+		{
+			TENSOR_ASSERT(this->rank() == 1, "this tensor cannot be addressed by 1 index");
+			for (int i = 0; i < shape(0); ++i)
+				(*this)(i) = func(i);
+		}
+
+		void assign(std::function<Scalar(int, int)> func)
+		{
+			TENSOR_ASSERT(this->rank() == 2, "this tensor cannot be addressed by 2 indices");
+			for (int i = 0; i < shape(0); ++i)
+				for (int j = 0; j < shape(1); ++j)
+					(*this)(i, j) = func(i, j);
+		}
+
+		void assign(std::function<Scalar(int, int, int)> func)
+		{
+			TENSOR_ASSERT(this->rank() == 3, "this tensor cannot be addressed by 3 indices");
+			for (int i = 0; i < shape(0); ++i)
+				for (int j = 0; j < shape(1); ++j)
+					for (int k = 0; k < shape(2); ++k)
+						(*this)(i, j, k) = func(i, j, k); 
+		}
+
+		void assign(std::function<Scalar(int)> func, UseFlatIndexTag use_flat_index)
+		{ 
+			for (int i = 0; i < size(); ++i)
+				(*this)[i] = func(i);
 		}
 
 		static Tensor<Scalar> Zeros(std::vector<int> const& shape)
@@ -286,11 +316,10 @@ namespace Ten
 		Tensor<Scalar> operator+(Tensor<Scalar> const& B) const
 		{
 			Tensor<Scalar> const& A = *this;
-			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes");
-			int index = -1;
+			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes"); 
 			return Tensor<Scalar>(
 				A.shape(),
-				[&](int index) {  return A[index] + B[index]; },
+				[&](int i) {  return A[i] + B[i]; },
 				use_flat_index
 				);
 		}
@@ -298,8 +327,7 @@ namespace Ten
 		Tensor<Scalar> operator-(Tensor<Scalar> const& B) const
 		{
 			Tensor<Scalar> const& A = *this;
-			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes");
-			int index = -1;
+			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes"); 
 			return Tensor<Scalar>(
 				A.shape(),
 				[&](int index) {  return A[index] - B[index]; },
@@ -326,9 +354,9 @@ namespace Ten
 				_shape,
 				[&](int r, int c) {
 					Scalar z = 0;
-					for (int i = 0; i < B.rows(); i++)  
-						for (int j = 0; j < B.cols(); j++) 
-							z += A(r + i, c + j) * B(i, j); 
+					for (int i = 0; i < B.rows(); i++)
+						for (int j = 0; j < B.cols(); j++)
+							z += A(r + i, c + j) * B(i, j);
 					return z;
 				}
 			);
@@ -494,8 +522,7 @@ namespace Ten
 
 	};
 
-	std::default_random_engine rand_eng;
-
+	inline std::default_random_engine rand_eng;
 
 	inline Tensor<double> RandomUniform(std::vector<int> const& shape, double lower_bound, double upper_bound)
 	{

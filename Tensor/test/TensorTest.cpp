@@ -35,7 +35,8 @@ BOOST_AUTO_TEST_CASE(DotProduct)
 	Tensor<int> C({ 2,2 }, { 8,5,20,13 });
 	Tensor<int> D({ 2,2 }, { 5,5,5,5 });
 
-	BOOST_CHECK(C == A.dot(B));
+	bool yes = C == A.dot(B);
+	BOOST_CHECK(yes);
 	BOOST_CHECK(D == A + B);
 }
 BOOST_AUTO_TEST_CASE(Conv2d)
@@ -95,6 +96,17 @@ BOOST_AUTO_TEST_CASE(Moving)
 	Tensor<NoCopy> Y{ NoCopy() };
 	AllowCopy = false;
 	Tensor<NoCopy> Z = X + Y;
+}
+
+BOOST_AUTO_TEST_CASE(Assign)
+{
+	Tensor<int> T1 = Tensor<int>::Constants({ 3,3,3 }, 1);
+	Tensor<int> T2 = Tensor<int>::Constants({ 3,3,3 }, 2);
+	Tensor<int> T3({ 3,3,3 });
+	T3.assign([&](int i, int j, int k) {
+		return T1(i, j, k) + T2(i, j, k);
+		});
+	BOOST_CHECK(T1 + T2 == T3);
 }
 
 //BOOST_AUTO_TEST_CASE(Elemwise)
