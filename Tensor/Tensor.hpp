@@ -112,9 +112,9 @@ namespace Ten {
 		{}
 
 		/// Copy assignment
-		Tensor& operator=(Tensor other) {
-			std::swap(this->_data, other._data);
-			std::swap(this->_dims, other._dims);
+		Tensor& operator=(Tensor const& other) {
+			this->_data = other._data;
+			this->_dims = other._dims;
 			return *this;
 		}
 

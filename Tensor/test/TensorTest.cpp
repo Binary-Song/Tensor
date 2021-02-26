@@ -111,6 +111,7 @@ BOOST_AUTO_TEST_CASE(Assign)
 	T1 = T2;
 	Tensor<int> T4(T3);
 	BOOST_CHECK(T1 != T3);
+	T1 = Tensor<int>::Constants({ 3,3,3 }, 2);
 }
 
 //BOOST_AUTO_TEST_CASE(Elemwise)
