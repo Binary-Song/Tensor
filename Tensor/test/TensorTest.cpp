@@ -107,6 +107,10 @@ BOOST_AUTO_TEST_CASE(Assign)
 		return T1(i, j, k) + T2(i, j, k);
 		});
 	BOOST_CHECK(T1 + T2 == T3);
+
+	T1 = T2;
+	Tensor<int> T4(T3);
+	BOOST_CHECK(T1 != T3);
 }
 
 //BOOST_AUTO_TEST_CASE(Elemwise)

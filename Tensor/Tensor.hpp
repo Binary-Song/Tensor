@@ -4,6 +4,7 @@
 #include <functional>
 #include <random>
 #include <tuple>
+#include <utility>
 #ifdef NDEBUG 
 // release mode
 #define TENSOR_ASSERT(cond,msg)
@@ -14,8 +15,7 @@
 #endif
 
 
-namespace Ten
-{
+namespace Ten {
 	template<typename Scalar>
 	class Tensor
 	{
@@ -28,15 +28,13 @@ namespace Ten
 			Shape(std::vector<int> const& shape)
 				:std::vector<int>(shape) {}
 
-			Shape(Tensor const& t)
-			{
+			Shape(Tensor const& t) {
 				for (size_t r = 0; r < t.rank(); ++r) {
 					push_back(t._dims[r].elems);
 				}
 			}
 
-			bool operator==(Shape const& other) const
-			{
+			bool operator==(Shape const& other) const {
 				if (size() != other.size()) return false;
 				for (size_t r = 0; r < size(); ++r) {
 					if ((*this)[r] != other[r])
@@ -68,14 +66,12 @@ namespace Ten
 		static constexpr struct ReserveDataComputeDims {} reserve_data_compute_dims;
 		static constexpr struct ReserveDataSetDims {} reserve_data_set_dims;
 
-		Tensor(std::vector<int> const& shape, ReserveDataComputeDims)
-		{
+		Tensor(std::vector<int> const& shape, ReserveDataComputeDims) {
 			init_dimensions(shape);
 			_data.reserve(compute_data_size(_dims));
 		}
 
-		Tensor(std::vector<Dimension> const& dims, int total_size, ReserveDataSetDims)
-		{
+		Tensor(std::vector<Dimension> const& dims, int total_size, ReserveDataSetDims) {
 			_dims = dims;
 			_data.reserve(total_size);
 		}
@@ -84,8 +80,7 @@ namespace Ten
 
 		/// Construct tensor with shape and data
 		Tensor(std::vector<int> const& shape, std::vector<Scalar> const& data)
-			:Tensor(shape, reserve_data_compute_dims)
-		{
+			:Tensor(shape, reserve_data_compute_dims) {
 			int size = compute_data_size(_dims);
 			TENSOR_ASSERT(data.size() <= size, "too many initial values");
 			for (auto&& x : data) {
@@ -95,22 +90,31 @@ namespace Ten
 		}
 
 		/// Construct tensor with given shape and default data
-		Tensor(std::vector<int> const& shape)
-			:Tensor(shape, std::vector<Scalar>{})
-		{}
+		explicit Tensor(std::vector<int> const& shape)
+			:Tensor(shape, std::vector<Scalar>{}) {}
 
 		/// Move constructor
-		Tensor(Tensor&& other) noexcept
-		{
+		Tensor(Tensor&& other) noexcept {
 			_dims = std::move(other._dims);
 			_data = std::move(other._data);
 		}
 
 		/// Move assignment
-		Tensor& operator=(Tensor&& other) noexcept
-		{
+		Tensor& operator=(Tensor&& other) noexcept {
 			_dims = std::move(other._dims);
 			_data = std::move(other._data);
+			return *this;
+		}
+
+		/// Copy constructor
+		Tensor(Tensor const& other)
+			:_dims{ other._dims }, _data{ other._data }
+		{}
+
+		/// Copy assignment
+		Tensor& operator=(Tensor other) {
+			std::swap(this->_data, other._data);
+			std::swap(this->_dims, other._dims);
 			return *this;
 		}
 
@@ -126,8 +130,7 @@ namespace Ten
 
 		/// Construct a tensor with a function that returns values.
 		Tensor(std::vector<int> const& shape, std::function<Scalar()> func)
-			:Tensor(shape, reserve_data_compute_dims)
-		{
+			:Tensor(shape, reserve_data_compute_dims) {
 			int size = compute_data_size(shape);
 			while (size--) {
 				_data.push_back(func());
@@ -136,8 +139,7 @@ namespace Ten
 
 		/// Construct a tensor with a function that returns a value for each index.
 		Tensor(std::vector<int> const& shape, std::function<Scalar(int)> func)
-			:Tensor(shape, reserve_data_compute_dims)
-		{
+			:Tensor(shape, reserve_data_compute_dims) {
 			TENSOR_ASSERT(this->rank() == 1, "this tensor cannot be addressed by 1 index");
 			for (int i = 0; i < shape[0]; ++i)
 				_data.push_back(func(i));
@@ -147,8 +149,7 @@ namespace Ten
 
 		/// Construct a tensor with a function that returns a value for each index group.
 		Tensor(std::vector<int> const& shape, std::function<Scalar(int, int)> func)
-			:Tensor(shape, reserve_data_compute_dims)
-		{
+			:Tensor(shape, reserve_data_compute_dims) {
 			TENSOR_ASSERT(this->rank() == 2, "this tensor cannot be addressed by 2 indices");
 			for (int i = 0; i < shape[0]; ++i)
 				for (int j = 0; j < shape[1]; ++j)
@@ -157,8 +158,7 @@ namespace Ten
 
 		/// Construct a tensor with a function that returns a value for each index group.
 		Tensor(std::vector<int> const& shape, std::function<Scalar(int, int, int)> func)
-			:Tensor(shape, reserve_data_compute_dims)
-		{
+			:Tensor(shape, reserve_data_compute_dims) {
 			TENSOR_ASSERT(this->rank() == 3, "this tensor cannot be addressed by 3 indices");
 			for (int i = 0; i < shape[0]; ++i)
 				for (int j = 0; j < shape[1]; ++j)
@@ -168,62 +168,53 @@ namespace Ten
 
 		/// Construct a tensor with a function that returns a value for each FLATTENED index.
 		Tensor(std::vector<int> const& shape, std::function<Scalar(int)> func, UseFlatIndexTag use_flat_index)
-			:Tensor(shape, reserve_data_compute_dims)
-		{
+			:Tensor(shape, reserve_data_compute_dims) {
 			int size = compute_data_size(shape);
 			for (int i = 0; i < size; ++i)
 				_data.push_back(func(i));
 		}
 
-		void assign(std::function<Scalar(int)> func)
-		{
+		void assign(std::function<Scalar(int)> func) {
 			TENSOR_ASSERT(this->rank() == 1, "this tensor cannot be addressed by 1 index");
 			for (int i = 0; i < shape(0); ++i)
 				(*this)(i) = func(i);
 		}
 
-		void assign(std::function<Scalar(int, int)> func)
-		{
+		void assign(std::function<Scalar(int, int)> func) {
 			TENSOR_ASSERT(this->rank() == 2, "this tensor cannot be addressed by 2 indices");
 			for (int i = 0; i < shape(0); ++i)
 				for (int j = 0; j < shape(1); ++j)
 					(*this)(i, j) = func(i, j);
 		}
 
-		void assign(std::function<Scalar(int, int, int)> func)
-		{
+		void assign(std::function<Scalar(int, int, int)> func) {
 			TENSOR_ASSERT(this->rank() == 3, "this tensor cannot be addressed by 3 indices");
 			for (int i = 0; i < shape(0); ++i)
 				for (int j = 0; j < shape(1); ++j)
 					for (int k = 0; k < shape(2); ++k)
-						(*this)(i, j, k) = func(i, j, k); 
+						(*this)(i, j, k) = func(i, j, k);
 		}
 
-		void assign(std::function<Scalar(int)> func, UseFlatIndexTag use_flat_index)
-		{ 
+		void assign(std::function<Scalar(int)> func, UseFlatIndexTag use_flat_index) {
 			for (int i = 0; i < size(); ++i)
 				(*this)[i] = func(i);
 		}
 
-		static Tensor<Scalar> Zeros(std::vector<int> const& shape)
-		{
+		static Tensor<Scalar> Zeros(std::vector<int> const& shape) {
 			return Tensor(shape, []() {return 0; });
 		}
 
-		static Tensor<Scalar> Ones(std::vector<int> const& shape)
-		{
+		static Tensor<Scalar> Ones(std::vector<int> const& shape) {
 			return Tensor(shape, []() {return 1; });
 		}
 
-		static Tensor<Scalar> Constants(std::vector<int> const& shape, Scalar c)
-		{
+		static Tensor<Scalar> Constants(std::vector<int> const& shape, Scalar c) {
 			return Tensor(shape, [=]() {return c; });
 		}
 
 
 		template<typename... Args>
-		Scalar& operator()(Args... args)
-		{
+		Scalar& operator()(Args... args) {
 #ifndef NDEBUG 
 			assert_index_range<0>(args...);
 			assert_count_index(args...);
@@ -233,71 +224,58 @@ namespace Ten
 		}
 
 		template<typename... Args>
-		Scalar const& operator()(Args... args) const
-		{
+		Scalar const& operator()(Args... args) const {
 			return const_cast<Tensor&>(*this).operator()(args...);
 		}
 
-		Scalar& operator[](int flat_index)
-		{
+		Scalar& operator[](int flat_index) {
 			return _data[flat_index];
 		}
 
-		Scalar const& operator[](int flat_index) const
-		{
+		Scalar const& operator[](int flat_index) const {
 			return _data[flat_index];
 		}
 
-		size_t size() const
-		{
+		size_t size() const {
 			return _data.size();
 		}
 
-		Scalar* data()
-		{
+		Scalar* data() {
 			return _data.data();
 		}
 
-		Scalar const* data() const
-		{
+		Scalar const* data() const {
 			return _data.data();
 		}
 
 
-		void reshape(std::vector<int> const& shape)
-		{
+		void reshape(std::vector<int> const& shape) {
 			init_dimensions(shape);
 			// compute data size & resize data
 			_data.resize(compute_data_size(shape));
 		}
 
-		Shape shape() const
-		{
+		Shape shape() const {
 			return Shape(*this);
 		}
 
-		int shape(int i) const
-		{
+		int shape(int i) const {
 			return _dims[i].elems;
 		}
 
-		size_t rank() const
-		{
+		size_t rank() const {
 			return _dims.size();
 		}
 
-		int rows() const
-		{
+		int rows() const {
 			return _dims[0].elems;
 		}
 
-		int cols() const
-		{
+		int cols() const {
 			return _dims[1].elems;
 		}
 
-		Tensor<Scalar> dot(Tensor<Scalar> const& B) const
-		{
+		Tensor<Scalar> dot(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support dot product");
 			TENSOR_ASSERT(A.cols() == B.rows(), "can't multiply with wrong shapes");
@@ -313,10 +291,9 @@ namespace Ten
 			);
 		}
 
-		Tensor<Scalar> operator+(Tensor<Scalar> const& B) const
-		{
+		Tensor<Scalar> operator+(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
-			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes"); 
+			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes");
 			return Tensor<Scalar>(
 				A.shape(),
 				[&](int i) {  return A[i] + B[i]; },
@@ -324,10 +301,9 @@ namespace Ten
 				);
 		}
 
-		Tensor<Scalar> operator-(Tensor<Scalar> const& B) const
-		{
+		Tensor<Scalar> operator-(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
-			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes"); 
+			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes");
 			return Tensor<Scalar>(
 				A.shape(),
 				[&](int index) {  return A[index] - B[index]; },
@@ -335,8 +311,7 @@ namespace Ten
 				);
 		}
 
-		bool operator==(Tensor<Scalar> const& B) const
-		{
+		bool operator==(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.shape() == B.shape(), "can't compare equality with wrong shapes");
 			for (size_t i = 0; i < A.size(); ++i)
@@ -345,8 +320,11 @@ namespace Ten
 			return true;
 		}
 
-		Tensor<Scalar> convolve2D(Tensor<Scalar> const& B) const
-		{
+		bool operator!=(Tensor<Scalar> const& B) const {
+			return !((*this) == B);
+		}
+
+		Tensor<Scalar> convolve2D(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support convolution");
 			std::vector<int> _shape = { A.rows() - B.rows() + 1, A.cols() - B.cols() + 1 };
@@ -425,22 +403,19 @@ namespace Ten
 		//	/// to do : finish this
 		//}
 
-		Tensor<Scalar> operator*(Scalar coeff) const
-		{
+		Tensor<Scalar> operator*(Scalar coeff) const {
 			return this->elemwise([=](Scalar elem) {
 				return elem * coeff;
 				});
 		}
 
-		Tensor<Scalar> operator/(Scalar coeff) const
-		{
+		Tensor<Scalar> operator/(Scalar coeff) const {
 			return this->elemwise([=](Scalar elem) {
 				return elem / coeff;
 				});
 		}
 
-		Tensor<Scalar> operator-() const
-		{
+		Tensor<Scalar> operator-() const {
 			return this->elemwise([=](Scalar elem) {
 				return -elem;
 				});
@@ -454,40 +429,34 @@ namespace Ten
 #ifndef NDEBUG
 
 		template<unsigned i>
-		void assert_index_range()
-		{}
+		void assert_index_range() {}
 
 		template<unsigned i, typename T, typename... Args>
-		void assert_index_range(T t, Args... args)
-		{
+		void assert_index_range(T t, Args... args) {
 			TENSOR_ASSERT(t >= 0 && t < _dims[i].elems, "index out of range");
 			assert_index_range<i + 1>(args...);
 		}
 
 		template<typename... T>
-		void assert_count_index(T... t)
-		{
+		void assert_count_index(T... t) {
 			TENSOR_ASSERT(sizeof...(T) == _dims.size(), "index count must equal tensor dimension");
 		}
 #endif
 
 		template<unsigned i = 0>
-		size_t flat_index()
-		{
+		size_t flat_index() {
 			return 0;
 		}
 
 		template<unsigned i, typename T, typename... Args>
-		size_t flat_index(T t, Args... args)
-		{
+		size_t flat_index(T t, Args... args) {
 			return t * _dims[i].elem_size + flat_index<i + 1>(args...);
 		}
 
 #pragma endregion 
 #pragma region Details: Dimension and sizes
 
-		void init_dimensions(std::vector<int> const& shape)
-		{
+		void init_dimensions(std::vector<int> const& shape) {
 			// init dimensions
 			_dims.resize(shape.size());
 			for (size_t i = 0; i < shape.size(); ++i) {
@@ -500,8 +469,7 @@ namespace Ten
 			}
 		}
 
-		static int compute_data_size(const std::vector<Dimension>& d)
-		{
+		static int compute_data_size(const std::vector<Dimension>& d) {
 			int data_size = 1;
 			for (int i = 0; i < d.size(); ++i) {
 				data_size *= d[i].elems;
@@ -509,8 +477,7 @@ namespace Ten
 			return data_size;
 		}
 
-		static int compute_data_size(std::vector<int> const& shape)
-		{
+		static int compute_data_size(std::vector<int> const& shape) {
 			int data_size = 1;
 			for (int i = 0; i < shape.size(); ++i) {
 				data_size *= shape[i];
@@ -524,20 +491,17 @@ namespace Ten
 
 	inline std::default_random_engine rand_eng;
 
-	inline Tensor<double> RandomUniform(std::vector<int> const& shape, double lower_bound, double upper_bound)
-	{
+	inline Tensor<double> RandomUniform(std::vector<int> const& shape, double lower_bound, double upper_bound) {
 		std::uniform_real_distribution<double> unif(lower_bound, upper_bound);
 		return Tensor<double>(shape, [&]() {return unif(rand_eng); });
 	}
 
-	inline Tensor<int> RandomUniform(std::vector<int> const& shape, int lower_bound, int upper_bound)
-	{
+	inline Tensor<int> RandomUniform(std::vector<int> const& shape, int lower_bound, int upper_bound) {
 		std::uniform_int_distribution<int> unif(lower_bound, upper_bound);
 		return Tensor<int>(shape, [&]() {return unif(rand_eng); });
 	}
 
-	inline Tensor<double> RandomNormal(std::vector<int> const& shape, double mean, double stddev)
-	{
+	inline Tensor<double> RandomNormal(std::vector<int> const& shape, double mean, double stddev) {
 		std::normal_distribution<double> norm(mean, stddev);
 		return Tensor<double>(shape, [&]() {return norm(rand_eng); });
 	}
