@@ -16,6 +16,10 @@
 
 
 namespace Ten {
+	constexpr struct ReserveDataComputeDimsTag {} reserve_data_compute_dims;
+	constexpr struct ReserveDataSetDimsTag {} reserve_data_set_dims;
+	constexpr struct UseFlatIndexTag {} use_flat_index; 
+
 	template<typename Scalar>
 	class Tensor
 	{
@@ -63,15 +67,14 @@ namespace Ten {
 		std::vector<Scalar> _data;
 
 
-		static constexpr struct ReserveDataComputeDims {} reserve_data_compute_dims;
-		static constexpr struct ReserveDataSetDims {} reserve_data_set_dims;
 
-		Tensor(std::vector<int> const& shape, ReserveDataComputeDims) {
+
+		Tensor(std::vector<int> const& shape, ReserveDataComputeDimsTag) {
 			init_dimensions(shape);
 			_data.reserve(compute_data_size(_dims));
 		}
 
-		Tensor(std::vector<Dimension> const& dims, int total_size, ReserveDataSetDims) {
+		Tensor(std::vector<Dimension> const& dims, int total_size, ReserveDataSetDimsTag) {
 			_dims = dims;
 			_data.reserve(total_size);
 		}
@@ -145,7 +148,6 @@ namespace Ten {
 				_data.push_back(func(i));
 		}
 
-		static constexpr struct UseFlatIndexTag {} use_flat_index;
 
 		/// Construct a tensor with a function that returns a value for each index group.
 		Tensor(std::vector<int> const& shape, std::function<Scalar(int, int)> func)
@@ -198,6 +200,34 @@ namespace Ten {
 		void assign(std::function<Scalar(int)> func, UseFlatIndexTag use_flat_index) {
 			for (int i = 0; i < size(); ++i)
 				(*this)[i] = func(i);
+		}
+
+	 
+		
+		void for_each(std::function<void(int)> func) const {
+			TENSOR_ASSERT(this->rank() == 1, "this tensor cannot be addressed by 1 index");
+			for (int i = 0; i < shape(0); ++i)
+				func(i);
+		}
+
+		void for_each(std::function<void(int, int)> func) const {
+			TENSOR_ASSERT(this->rank() == 2, "this tensor cannot be addressed by 2 indices");
+			for (int i = 0; i < shape(0); ++i)
+				for (int j = 0; j < shape(1); ++j)
+					func(i, j);
+		}
+
+		void for_each(std::function<void(int, int, int)> func) const {
+			TENSOR_ASSERT(this->rank() == 3, "this tensor cannot be addressed by 3 indices");
+			for (int i = 0; i < shape(0); ++i)
+				for (int j = 0; j < shape(1); ++j)
+					for (int k = 0; k < shape(2); ++k)
+						func(i, j, k);
+		}
+
+		void for_each(std::function<void(int)> func, UseFlatIndexTag use_flat_index) const {
+			for (int i = 0; i < size(); ++i)
+				func(i);
 		}
 
 		static Tensor<Scalar> Zeros(std::vector<int> const& shape) {
@@ -275,21 +305,6 @@ namespace Ten {
 			return _dims[1].elems;
 		}
 
-		Tensor<Scalar> dot(Tensor<Scalar> const& B) const {
-			Tensor<Scalar> const& A = *this;
-			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support dot product");
-			TENSOR_ASSERT(A.cols() == B.rows(), "can't multiply with wrong shapes");
-
-			return Tensor<Scalar>(
-				{ A.rows(), B.cols() },
-				[&](int i, int j) {
-					Scalar sum = 0;
-					for (int k = 0; k < A.cols(); ++k)
-						sum += A(i, k) * B(k, j);
-					return sum;
-				}
-			);
-		}
 
 		Tensor<Scalar> operator+(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
@@ -324,12 +339,27 @@ namespace Ten {
 			return !((*this) == B);
 		}
 
+		Tensor<Scalar> dot(Tensor<Scalar> const& B) const {
+			Tensor<Scalar> const& A = *this;
+			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support dot product");
+			TENSOR_ASSERT(A.cols() == B.rows(), "can't multiply with wrong shapes");
+
+			return Tensor<Scalar>(
+				{ A.rows(), B.cols() },
+				[&](int i, int j) {
+					Scalar sum = 0;
+					for (int k = 0; k < A.cols(); ++k)
+						sum += A(i, k) * B(k, j);
+					return sum;
+				}
+			);
+		}
+
 		Tensor<Scalar> convolve2D(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support convolution");
-			std::vector<int> _shape = { A.rows() - B.rows() + 1, A.cols() - B.cols() + 1 };
 			return Tensor<Scalar>(
-				_shape,
+				{ A.rows() - B.rows() + 1, A.cols() - B.cols() + 1 },
 				[&](int r, int c) {
 					Scalar z = 0;
 					for (int i = 0; i < B.rows(); i++)
@@ -339,6 +369,18 @@ namespace Ten {
 				}
 			);
 		}
+
+		Tensor<Scalar> transpose() const {
+			Tensor<Scalar> const& A = *this;
+			TENSOR_ASSERT(A.rank() == 2, "only matrices support transposition");
+			return Tensor<Scalar>(
+				{ A.cols(), A.rows() },
+				[&](int r, int c) {
+					return A(c, r);
+				}
+			);
+		}
+ 
 
 
 		//Tensor<Scalar> elemwise(std::function<Scalar(Scalar elem)> func) const

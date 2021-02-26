@@ -3,8 +3,7 @@
 #include "Tensor.hpp"  
 using namespace Ten;
 
-BOOST_AUTO_TEST_CASE(Trivial)
-{
+BOOST_AUTO_TEST_CASE(Trivial) {
 	Tensor<int> t1({ 1,2,3 });
 	t1(0, 0, 0) = 1;
 	t1(0, 0, 1) = 2;
@@ -18,8 +17,7 @@ BOOST_AUTO_TEST_CASE(Trivial)
 	t1.reshape({ 3,2,2,2,2 });
 	auto s = t1.shape()[0];
 }
-BOOST_AUTO_TEST_CASE(DotProduct)
-{
+BOOST_AUTO_TEST_CASE(DotProduct) {
 	/*
 		1 2
 		3 4
@@ -39,8 +37,7 @@ BOOST_AUTO_TEST_CASE(DotProduct)
 	BOOST_CHECK(yes);
 	BOOST_CHECK(D == A + B);
 }
-BOOST_AUTO_TEST_CASE(Conv2d)
-{
+BOOST_AUTO_TEST_CASE(Conv2d) {
 	/*
 		1 2 0
 		-1 3 1
@@ -64,31 +61,25 @@ conv
 }
 
 bool AllowCopy = true;
-BOOST_AUTO_TEST_CASE(Moving)
-{
+BOOST_AUTO_TEST_CASE(Moving) {
 	class NoCopy
 	{
 	public:
 		NoCopy() {}
 
-		NoCopy(const NoCopy& other)
-		{
+		NoCopy(const NoCopy& other) {
 			BOOST_ASSERT(AllowCopy);
 		}
-		NoCopy& operator=(const NoCopy&)
-		{
+		NoCopy& operator=(const NoCopy&) {
 			BOOST_ASSERT(AllowCopy);
 			return *this;
 		}
 
-		NoCopy(NoCopy&&) noexcept
-		{}
-		NoCopy& operator=(NoCopy&&) noexcept
-		{
+		NoCopy(NoCopy&&) noexcept {}
+		NoCopy& operator=(NoCopy&&) noexcept {
 			return *this;
 		}
-		NoCopy operator+(const NoCopy& nocopy)const
-		{
+		NoCopy operator+(const NoCopy& nocopy)const {
 			return NoCopy();
 		}
 	};
@@ -98,8 +89,7 @@ BOOST_AUTO_TEST_CASE(Moving)
 	Tensor<NoCopy> Z = X + Y;
 }
 
-BOOST_AUTO_TEST_CASE(Assign)
-{
+BOOST_AUTO_TEST_CASE(Assign) {
 	Tensor<int> T1 = Tensor<int>::Constants({ 3,3,3 }, 1);
 	Tensor<int> T2 = Tensor<int>::Constants({ 3,3,3 }, 2);
 	Tensor<int> T3({ 3,3,3 });
@@ -114,6 +104,28 @@ BOOST_AUTO_TEST_CASE(Assign)
 	T1 = Tensor<int>::Constants({ 3,3,3 }, 2);
 }
 
+BOOST_AUTO_TEST_CASE(Foreach) {
+	Tensor<int> T1 = Tensor<int>::Constants({ 3,3,3 }, 1);
+	int val = 0;
+	T1.for_each([&](int i, int j, int k) {
+		T1(i, j, k) = val++;
+		});
+
+	val = 0;
+	Tensor<int> T2 = Tensor<int>::Constants({ 3,3,3 }, 1);
+	T2.for_each([&](int i) {
+		T2[i] = val++;
+		}
+		, use_flat_index
+	);  
+}
+
+BOOST_AUTO_TEST_CASE(Transpose) {
+	Tensor<int> T1({2,3},{1,2,3,4,5,6});
+	Tensor<int> T2({3,2},{1,4,2,5,3,6}); 
+	BOOST_CHECK(T1.transpose() == T2);
+	BOOST_CHECK(T2.transpose() == T1); 
+}
 //BOOST_AUTO_TEST_CASE(Elemwise)
 //{
 //	Tensor<int> X({ 2,2 }, { 1,2,3,4 });
