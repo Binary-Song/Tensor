@@ -97,24 +97,29 @@ BOOST_AUTO_TEST_CASE(Moving)
 	Tensor<NoCopy> Z = X + Y;
 }
 
-BOOST_AUTO_TEST_CASE(Elemwise)
-{
-	Tensor<int> X({ 2,2 }, { 1,2,3,4 });
-	Tensor<int> X_power_2({ 2,2 }, { 1,4,9,16 });
-	Tensor<int> X_times_3({ 2,2 }, { 3,6,9,12 });
-	Tensor<int> X_div_2({ 2,2 }, { 0,1,1,2 });
-
-	BOOST_CHECK(X.elemwise([=](int elem) {return elem * elem; }) == X_power_2);
-	BOOST_CHECK(X * 3 == X_times_3);
-	BOOST_CHECK(X / 2 == X_div_2);
-	BOOST_CHECK(Tensor<int>::Ones({ 2,2 }) * 3 == Tensor<int>::Constants({ 2,2 }, 3));
-	BOOST_CHECK(Tensor<int>::Ones({ 2,2 }) * 3 == Tensor<int>::Constants({ 2,2 }, 3));
-	BOOST_CHECK(Tensor<int>::Zeros({ 2,2 }) - Tensor<int>::Ones({ 2,2 }) == -Tensor<int>::Ones({ 2,2 }));
-}
-
-BOOST_AUTO_TEST_CASE(Random)
-{
-	Tensor < double> X = RandomUniform({ 20,20 }, 0.0, 5.0);
-	Tensor < double> Y = RandomNormal({ 20,20 }, 5.0, 0.1);
-	Tensor < int> Z = RandomUniform({ 20,20 }, 0, 5);
-}
+//BOOST_AUTO_TEST_CASE(Elemwise)
+//{
+//	Tensor<int> X({ 2,2 }, { 1,2,3,4 });
+//	Tensor<int> X_power_2({ 2,2 }, { 1,4,9,16 });
+//	Tensor<int> X_times_3({ 2,2 }, { 3,6,9,12 });
+//	Tensor<int> X_div_2({ 2,2 }, { 0,1,1,2 });
+//
+//	BOOST_CHECK(X.elemwise([=](int elem) {return elem * elem; }) == X_power_2);
+//	BOOST_CHECK(X * 3 == X_times_3);
+//	BOOST_CHECK(X / 2 == X_div_2);
+//	BOOST_CHECK(Tensor<int>::Ones({ 2,2 }) * 3 == Tensor<int>::Constants({ 2,2 }, 3));
+//	BOOST_CHECK(Tensor<int>::Ones({ 2,2 }) * 3 == Tensor<int>::Constants({ 2,2 }, 3));
+//	BOOST_CHECK(Tensor<int>::Zeros({ 2,2 }) - Tensor<int>::Ones({ 2,2 }) == -Tensor<int>::Ones({ 2,2 }));
+//}
+//
+//BOOST_AUTO_TEST_CASE(Random)
+//{
+//	Tensor <double> X = RandomUniform({ 20,20 }, 0.0, 5.0);
+//	Tensor <double> Y = RandomNormal({ 20,20 }, 5.0, 0.1);
+//	Tensor <int> Z = RandomUniform({ 20,20 }, 0, 5);
+//	auto W = Tensor<int>({ 2,2 }, {1,2,3,4}).elemwise([=](std::tuple<int, int> i, int e) {
+//		auto&& [i0, i1](i);
+//		return i0 + i1;
+// 		});
+//	BOOST_CHECK()
+//}
