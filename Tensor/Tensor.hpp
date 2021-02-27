@@ -18,7 +18,7 @@
 namespace Ten {
 	constexpr struct ReserveDataComputeDimsTag {} reserve_data_compute_dims;
 	constexpr struct ReserveDataSetDimsTag {} reserve_data_set_dims;
-	constexpr struct UseFlatIndexTag {} use_flat_index; 
+	constexpr struct UseFlatIndexTag {} use_flat_index;
 
 	template<typename Scalar>
 	class Tensor
@@ -202,8 +202,8 @@ namespace Ten {
 				(*this)[i] = func(i);
 		}
 
-	 
-		
+
+
 		void for_each(std::function<void(int)> func) const {
 			TENSOR_ASSERT(this->rank() == 1, "this tensor cannot be addressed by 1 index");
 			for (int i = 0; i < shape(0); ++i)
@@ -355,6 +355,26 @@ namespace Ten {
 			);
 		}
 
+		Tensor<Scalar>& operator+=(Tensor<Scalar> const& other) {
+			*this = *this + other;
+			return *this;
+		}
+
+		Tensor<Scalar>& operator-=(Tensor<Scalar> const& other) {
+			*this = *this - other;
+			return *this;
+		}
+
+		Tensor<Scalar>& operator*=(Scalar other) {
+			*this = *this * other;
+			return *this;
+		}
+
+		Tensor<Scalar>& operator/=(Scalar other) {
+			*this = *this / other;
+			return *this;
+		}
+
 		Tensor<Scalar> convolve2D(Tensor<Scalar> const& B) const {
 			Tensor<Scalar> const& A = *this;
 			TENSOR_ASSERT(A.rank() == 2 && B.rank() == 2, "only matrices support convolution");
@@ -380,7 +400,7 @@ namespace Ten {
 				}
 			);
 		}
- 
+
 
 
 		//Tensor<Scalar> elemwise(std::function<Scalar(Scalar elem)> func) const
