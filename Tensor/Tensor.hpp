@@ -237,6 +237,16 @@ namespace Ten {
 			return t;
 		}
 
+		Tensor<Scalar> elementwise_product(Tensor<Scalar> const& B) const{
+			Tensor<Scalar> const& A = *this;
+			TENSOR_ASSERT(A.shape() == B.shape(), "can't add with wrong shapes");
+			return Tensor<Scalar>(
+				A.shape(),
+				[&](int i) {  return A[i] * B[i]; },
+				use_flat_index
+				);
+		}
+
 		static Tensor<Scalar> Zeros(std::vector<int> const& shape) {
 			return Tensor(shape, []() {return 0; });
 		}
