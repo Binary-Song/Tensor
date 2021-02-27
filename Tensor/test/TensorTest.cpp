@@ -126,6 +126,13 @@ BOOST_AUTO_TEST_CASE(Transpose) {
 	BOOST_CHECK(T1.transpose() == T2);
 	BOOST_CHECK(T2.transpose() == T1); 
 }
+
+BOOST_AUTO_TEST_CASE(Elementwise) {
+	Tensor<std::string> T1({2,2},{"a","b","c","d"});
+	Tensor<std::string> T2({2,2},{"a1","b1","c1","d1"});
+	BOOST_CHECK(T1.elementwise([](std::string elem){return elem + "1";}) == T2);
+	Tensor<std::string> T3 = T1.elementwise([](std::string elem){return elem + "1";});
+}
 //BOOST_AUTO_TEST_CASE(Elemwise)
 //{
 //	Tensor<int> X({ 2,2 }, { 1,2,3,4 });

@@ -230,6 +230,13 @@ namespace Ten {
 				func(i);
 		}
 
+		Tensor<Scalar> elementwise(std::function<Scalar(Scalar)> func) const {
+			Tensor t(_dims, this->size(), reserve_data_set_dims);
+			for (int i = 0; i < size(); ++i)
+				t._data.push_back(func((*this)[i]));
+			return t;
+		}
+
 		static Tensor<Scalar> Zeros(std::vector<int> const& shape) {
 			return Tensor(shape, []() {return 0; });
 		}
